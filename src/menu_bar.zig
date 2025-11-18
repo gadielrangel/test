@@ -1,6 +1,18 @@
 const std = @import("std");
+const builtin = @import("builtin");
+
 pub const menu = @import("menu.zig");
-pub const backend = @import("backend/gtk.zig");
+
+/// Comptime platform selection (Ghostty pattern)
+/// At compile time, select the appropriate backend based on the OS
+pub const backend = switch (builtin.os.tag) {
+    .linux => @import("backend/gtk.zig"),
+    // Future platform support can be added here:
+    // .macos => @import("backend/cocoa.zig"),
+    // .windows => @import("backend/win32.zig"),
+    else => @compileError("Platform not supported. Only Linux is currently supported. " ++
+        "To add support for your platform, implement a backend for " ++ @tagName(builtin.os.tag)),
+};
 
 pub const Menu = menu.Menu;
 pub const MenuItem = menu.MenuItem;
@@ -66,6 +78,10 @@ pub const Builder = struct {
     }
 };
 
+// ============================================================================
+// COMPREHENSIVE TEST SUITE
+// ============================================================================
+
 test "menubar creation" {
     const allocator = std.testing.allocator;
 
@@ -79,4 +95,58 @@ test "menubar creation" {
 
     try std.testing.expectEqual(@as(usize, 1), menubar.menus.items.len);
     try std.testing.expectEqual(@as(usize, 2), file_menu.items.items.len);
+}
+
+test "menubar with multiple menus" {
+    const allocator = std.testing.allocator;
+
+    var menubar = MenuBar.init(allocator);
+    defer menubar.deinit();
+
+    _ = try menubar.createMenu("File");
+    _ = try menubar.createMenu("Edit");
+    _ = try menubar.createMenu("View");
+
+    try std.testing.expectEqual(@as(usize, 3), menubar.menus.items.len);
+}
+
+test "builder pattern usage" {
+    const allocator = std.testing.allocator;
+
+    var builder = Builder.init(allocator);
+
+    // Create app menu
+    const app_menu = try builder.withAppMenu("MyApp");
+    try app_menu.addItem(MenuItem.normal("About"));
+    try app_menu.addSeparator();
+    try app_menu.addItem(MenuItem.normal("Quit"));
+
+    // Create additional menus
+    const file_menu = try builder.withMenu("File");
+    try file_menu.addItem(MenuItem.normal("New"));
+
+    var menubar = builder.build();
+    defer menubar.deinit();
+
+    try std.testing.expectEqual(@as(usize, 2), menubar.menus.items.len);
+}
+
+test "menubar with nested submenus" {
+    const allocator = std.testing.allocator;
+
+    var menubar = MenuBar.init(allocator);
+    defer menubar.deinit();
+
+    const file_menu = try menubar.createMenu("File");
+
+    // Create submenu
+    const export_menu = try allocator.create(Menu);
+    export_menu.* = Menu.init(allocator, "Export");
+    try export_menu.addItem(MenuItem.normal("As PDF"));
+    try export_menu.addItem(MenuItem.normal("As HTML"));
+
+    try file_menu.addItem(MenuItem.submenu("Export", export_menu));
+
+    try std.testing.expectEqual(@as(usize, 1), menubar.menus.items.len);
+    try std.testing.expectEqual(@as(usize, 1), file_menu.items.items.len);
 }

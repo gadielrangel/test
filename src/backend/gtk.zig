@@ -20,25 +20,33 @@ const GtkMenuItemData = struct {
 /// Context for GTK backend
 pub const GtkBackend = struct {
     gtk_menubar: *c.GtkWidget,
+    accel_group: *c.GtkAccelGroup,
     allocator: std.mem.Allocator,
     // Store callback data so it persists
     callback_data: std.ArrayList(*GtkMenuItemData),
 
     pub fn init(allocator: std.mem.Allocator) !GtkBackend {
         const menubar = c.gtk_menu_bar_new() orelse return error.GtkMenuBarCreationFailed;
+        const accel_group = c.gtk_accel_group_new() orelse return error.GtkAccelGroupCreationFailed;
 
         return .{
             .gtk_menubar = menubar,
+            .accel_group = accel_group,
             .allocator = allocator,
             .callback_data = std.ArrayList(*GtkMenuItemData).init(allocator),
         };
     }
 
     pub fn deinit(self: *GtkBackend) void {
+        // Clean up callback data
         for (self.callback_data.items) |data| {
             self.allocator.destroy(data);
         }
         self.callback_data.deinit();
+
+        // Unreference GTK objects (GTK uses reference counting)
+        c.g_object_unref(self.accel_group);
+        // Note: gtk_menubar is destroyed when the window is destroyed
     }
 
     pub fn createFromMenuBar(allocator: std.mem.Allocator, menubar: *MenuBar) !GtkBackend {
@@ -79,13 +87,16 @@ pub const GtkBackend = struct {
                 c.gtk_menu_shell_append(@ptrCast(gtk_menu), sep);
             },
             .normal => |normal| {
-                const gtk_item = if (item.shortcut) |shortcut|
-                    try self.createMenuItemWithShortcut(item.title, shortcut)
-                else blk: {
-                    const title_z = try self.allocator.dupeZ(u8, item.title);
-                    defer self.allocator.free(title_z);
-                    break :blk c.gtk_menu_item_new_with_label(title_z.ptr) orelse return error.GtkMenuItemCreationFailed;
-                };
+                const title_z = try self.allocator.dupeZ(u8, item.title);
+                defer self.allocator.free(title_z);
+
+                const gtk_item = c.gtk_menu_item_new_with_label(title_z.ptr) orelse
+                    return error.GtkMenuItemCreationFailed;
+
+                // Register accelerator if shortcut exists
+                if (item.shortcut) |shortcut| {
+                    try self.registerAccelerator(gtk_item, shortcut);
+                }
 
                 c.gtk_widget_set_sensitive(gtk_item, if (item.enabled) 1 else 0);
 
@@ -160,8 +171,9 @@ pub const GtkBackend = struct {
         }
     }
 
-    fn createMenuItemWithShortcut(self: *GtkBackend, title: []const u8, shortcut: menu_types.Shortcut) !*c.GtkWidget {
-        // Create accelerator string (e.g., "<Ctrl>O", "<Shift><Ctrl>S")
+    /// Register a keyboard accelerator for a menu item
+    fn registerAccelerator(self: *GtkBackend, gtk_item: *c.GtkWidget, shortcut: menu_types.Shortcut) !void {
+        // Build accelerator string (e.g., "<Ctrl>O", "<Shift><Ctrl>S")
         var accel_buf: [128]u8 = undefined;
         var accel_len: usize = 0;
 
@@ -191,24 +203,28 @@ pub const GtkBackend = struct {
             accel_len += key_upper.len;
         }
 
+        // Ensure we have space for null terminator
+        if (accel_len >= accel_buf.len) {
+            return error.AcceleratorStringTooLong;
+        }
         accel_buf[accel_len] = 0;
 
-        // Create menu item with null-terminated title
-        const title_z = try self.allocator.dupeZ(u8, title);
-        defer self.allocator.free(title_z);
-
-        const gtk_item = c.gtk_menu_item_new_with_label(title_z.ptr) orelse
-            return error.GtkMenuItemCreationFailed;
-
-        // Parse and set accelerator
+        // Parse accelerator string to get key and modifiers
         var accel_key: c.guint = 0;
         var accel_mods: c.GdkModifierType = 0;
         c.gtk_accelerator_parse(&accel_buf, &accel_key, &accel_mods);
 
-        // Note: To fully enable accelerators, you'd need an accel_group attached to the window
-        // For now, we just display the shortcut text
-
-        return gtk_item;
+        // Register the accelerator with the menu item
+        if (accel_key != 0) {
+            c.gtk_widget_add_accelerator(
+                gtk_item,
+                "activate",
+                self.accel_group,
+                accel_key,
+                accel_mods,
+                c.GTK_ACCEL_VISIBLE,
+            );
+        }
     }
 
     pub fn getWidget(self: *GtkBackend) *c.GtkWidget {
@@ -238,6 +254,9 @@ pub fn createWindowWithMenuBar(title: [:0]const u8, menubar: *GtkBackend) *c.Gtk
 
     c.gtk_window_set_title(@ptrCast(window), title.ptr);
     c.gtk_window_set_default_size(@ptrCast(window), 800, 600);
+
+    // Attach accelerator group to window (enables keyboard shortcuts)
+    c.gtk_window_add_accel_group(@ptrCast(window), menubar.accel_group);
 
     // Create vertical box layout
     const vbox = c.gtk_box_new(c.GTK_ORIENTATION_VERTICAL, 0) orelse @panic("Failed to create box");
