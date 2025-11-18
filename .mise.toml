@@ -1,0 +1,97 @@
+# Mise Configuration - Tool Version Management
+# https://mise.jdx.dev
+
+[tools]
+# Zig compiler - auto-install specified version
+zig = "0.13.0"
+
+# Just task runner - for developer commands
+just = "latest"
+
+# Lefthook - git hooks manager
+lefthook = "latest"
+
+[env]
+# Ensure tools are in PATH
+_.path = ["./zig-out/bin"]
+
+# GTK development mode
+GTK_DEBUG = "interactive"
+
+[tasks.setup]
+description = "Initial project setup"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🔧 Setting up development environment..."
+
+# Install git hooks
+if command -v lefthook &> /dev/null; then
+    lefthook install
+    echo "✓ Git hooks installed"
+else
+    echo "⚠ Lefthook not found, install with: mise install lefthook"
+fi
+
+# Create build directory
+mkdir -p zig-out
+
+# Check GTK3 installation
+if pkg-config --exists gtk+-3.0; then
+    echo "✓ GTK3 found: $(pkg-config --modversion gtk+-3.0)"
+else
+    echo "⚠ GTK3 not found. Install with:"
+    echo "  Ubuntu/Debian: sudo apt-get install libgtk-3-dev"
+    echo "  Fedora: sudo dnf install gtk3-devel"
+    echo "  Arch: sudo pacman -S gtk3"
+    exit 1
+fi
+
+echo "✨ Setup complete! Run 'just' to see available commands"
+"""
+
+[tasks.clean]
+description = "Clean build artifacts"
+run = "rm -rf zig-out zig-cache .zig-cache"
+
+[tasks.doctor]
+description = "Check development environment"
+run = """
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "🔍 Environment Check"
+echo "===================="
+
+# Check Zig
+if command -v zig &> /dev/null; then
+    echo "✓ Zig: $(zig version)"
+else
+    echo "✗ Zig: not found"
+fi
+
+# Check Just
+if command -v just &> /dev/null; then
+    echo "✓ Just: $(just --version)"
+else
+    echo "✗ Just: not found"
+fi
+
+# Check Lefthook
+if command -v lefthook &> /dev/null; then
+    echo "✓ Lefthook: $(lefthook version)"
+else
+    echo "✗ Lefthook: not found"
+fi
+
+# Check GTK3
+if pkg-config --exists gtk+-3.0; then
+    echo "✓ GTK3: $(pkg-config --modversion gtk+-3.0)"
+else
+    echo "✗ GTK3: not found"
+fi
+
+echo ""
+echo "Run 'mise install' to install missing tools"
+"""
