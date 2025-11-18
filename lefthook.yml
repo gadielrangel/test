@@ -1,0 +1,59 @@
+# Lefthook configuration - modern git hooks manager
+# https://github.com/evilmartians/lefthook
+
+# Pre-commit hooks - run before git commit
+pre-commit:
+  parallel: true
+  commands:
+    # Format check - ensure code is formatted
+    format-check:
+      glob: "*.zig"
+      run: zig fmt --check {staged_files}
+      stage_fixed: true
+
+    # Run tests to ensure nothing is broken
+    tests:
+      run: zig build test
+
+    # Check for common security issues
+    security-check:
+      run: |
+        echo "Checking for security issues..."
+        ! git diff --cached | grep -i "TODO.*security"
+        ! git diff --cached | grep -i "FIXME.*security"
+
+# Pre-push hooks - run before git push
+pre-push:
+  parallel: false
+  commands:
+    # Full build to ensure it compiles
+    build:
+      run: zig build -Doptimize=ReleaseFast
+
+    # Run all tests
+    test:
+      run: zig build test
+
+# Commit message validation
+commit-msg:
+  commands:
+    # Ensure commit messages follow conventional commits
+    conventional-commit:
+      run: |
+        commit_msg=$(cat {1})
+        if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+"; then
+          echo "Error: Commit message must follow Conventional Commits format"
+          echo "Examples:"
+          echo "  feat: add new menu item support"
+          echo "  fix: resolve keyboard shortcut bug"
+          echo "  docs: update README with installation steps"
+          exit 1
+        fi
+
+# Post-checkout hooks - run after switching branches
+post-checkout:
+  commands:
+    # Remind to install dependencies
+    dependencies:
+      run: |
+        echo "Don't forget to run 'mise install' if tools have changed!"

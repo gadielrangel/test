@@ -1,0 +1,45 @@
+# mise configuration - modern tool version management
+# https://mise.jdx.dev/
+
+[tools]
+# Zig - latest stable version
+zig = "0.13.0"
+
+# Just - modern command runner (better than make)
+just = "latest"
+
+# Lefthook - fast git hooks manager
+lefthook = "latest"
+
+# Task parallelization and caching
+# Uncomment if using mise tasks
+# [tasks.build]
+# run = "zig build -Doptimize=ReleaseFast"
+# depends = ["fmt-check"]
+
+# [tasks.fmt-check]
+# run = "zig fmt --check ."
+
+# [tasks.test]
+# run = "zig build test"
+
+[env]
+# Environment variables for development
+ZIG_LOCAL_CACHE_DIR = ".zig-cache"
+ZIG_GLOBAL_CACHE_DIR = "{{config_root}}/zig-cache"
+
+# Enable parallel builds
+ZIG_BUILD_PARALLEL = "true"
+
+# Production optimizations
+ZIG_OPTIMIZE = "ReleaseFast"
+
+[settings]
+# Automatically install tools on directory change
+auto_install = true
+
+# Use system packages when available
+prefer_system = false
+
+# Enable experimental features
+experimental = true
