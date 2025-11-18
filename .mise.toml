@@ -11,6 +11,10 @@ just = "latest"
 # Lefthook - git hooks manager
 lefthook = "latest"
 
+# act - Run GitHub Actions locally (requires Docker)
+# Uncomment to install: https://github.com/nektos/act
+# act = "latest"
+
 [env]
 # Ensure tools are in PATH
 _.path = ["./zig-out/bin"]

@@ -50,6 +50,21 @@ clean:
 check: fmt-check test
     @echo "✅ All checks passed!"
 
+# 🔍 Validate GitHub Actions workflows
+validate-workflows:
+    @echo "🔍 Validating GitHub Actions workflows..."
+    @./tools/validate_workflows.sh
+
+# 🚀 Test GitHub Actions locally (requires Docker + act)
+test-ci:
+    @echo "🚀 Testing CI workflow locally..."
+    @if command -v act &> /dev/null; then \
+        act -j build-and-test; \
+    else \
+        echo "❌ act not installed. Install: curl https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash"; \
+        exit 1; \
+    fi
+
 # 🔧 Development setup
 setup:
     @mise run setup

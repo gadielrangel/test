@@ -12,6 +12,7 @@ jobs:
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
@@ -30,6 +31,7 @@ jobs:
     name: Build Release
     needs: create-release
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         target:
@@ -49,6 +51,14 @@ jobs:
         uses: goto-bus-stop/setup-zig@v2
         with:
           version: ${{ env.ZIG_VERSION }}
+
+      - name: Cache Zig artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/zig
+            zig-cache
+          key: ${{ runner.os }}-zig-release-${{ matrix.target }}-${{ hashFiles('build.zig') }}
 
       - name: Build release binary
         run: |
