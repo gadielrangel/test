@@ -1,0 +1,83 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  ZIG_VERSION: "0.13.0"
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  build-release:
+    name: Build Release
+    needs: create-release
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-linux
+          - aarch64-linux
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install GTK3 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev
+
+      - name: Setup Zig
+        uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: ${{ env.ZIG_VERSION }}
+
+      - name: Build release binary
+        run: |
+          zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          cp zig-out/bin/example dist/menubar-${{ matrix.target }}
+          cd dist
+          tar czf menubar-${{ matrix.target }}.tar.gz menubar-${{ matrix.target }}
+          sha256sum menubar-${{ matrix.target }}.tar.gz > menubar-${{ matrix.target }}.tar.gz.sha256
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./dist/menubar-${{ matrix.target }}.tar.gz
+          asset_name: menubar-${{ matrix.target }}.tar.gz
+          asset_content_type: application/gzip
+
+      - name: Upload Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./dist/menubar-${{ matrix.target }}.tar.gz.sha256
+          asset_name: menubar-${{ matrix.target }}.tar.gz.sha256
+          asset_content_type: text/plain

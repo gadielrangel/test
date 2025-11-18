@@ -65,8 +65,33 @@ stats:
     @echo "Lines of code:"
     @find src -name "*.zig" | xargs wc -l | tail -1
 
+# 🔁 Rebuild from scratch
+rebuild: clean build
+    @echo "🔁 Rebuild complete!"
+
+# 👀 Watch and rebuild on changes (requires inotifywait)
+watch:
+    @echo "👀 Watching for changes..."
+    @while true; do \
+        inotifywait -q -r -e modify,create,delete src/ build.zig 2>/dev/null || \
+        (echo "⚠️  Install inotify-tools for watch mode: sudo apt-get install inotify-tools" && exit 1); \
+        clear; \
+        echo "🔄 Rebuilding..."; \
+        zig build 2>&1 && echo "✅ Build successful!" || echo "❌ Build failed!"; \
+    done
+
 # 🌐 Install system dependencies (Ubuntu/Debian)
 install-deps-ubuntu:
     @echo "🌐 Installing system dependencies..."
     sudo apt-get update
     sudo apt-get install -y libgtk-3-dev
+
+# 🌐 Install system dependencies (Fedora/RHEL)
+install-deps-fedora:
+    @echo "🌐 Installing system dependencies..."
+    sudo dnf install -y gtk3-devel
+
+# 🌐 Install system dependencies (Arch)
+install-deps-arch:
+    @echo "🌐 Installing system dependencies..."
+    sudo pacman -S --needed gtk3
