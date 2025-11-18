@@ -38,6 +38,7 @@ pub const MenuBar = struct {
     /// Create and add a new menu
     pub fn createMenu(self: *MenuBar, title: []const u8) !*Menu {
         const menu_ptr = try self.allocator.create(Menu);
+        errdefer self.allocator.destroy(menu_ptr);
         menu_ptr.* = Menu.init(self.allocator, title);
         try self.addMenu(menu_ptr);
         return menu_ptr;

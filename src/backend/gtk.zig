@@ -61,8 +61,11 @@ pub const GtkBackend = struct {
             try self.addMenuItem(gtk_menu, &item);
         }
 
-        // Create top-level menu item
-        const menu_item = c.gtk_menu_item_new_with_label(menu_ptr.title.ptr) orelse
+        // Create top-level menu item with null-terminated title
+        const title_z = try self.allocator.dupeZ(u8, menu_ptr.title);
+        defer self.allocator.free(title_z);
+
+        const menu_item = c.gtk_menu_item_new_with_label(title_z.ptr) orelse
             return error.GtkMenuItemCreationFailed;
 
         c.gtk_menu_item_set_submenu(@ptrCast(menu_item), gtk_menu);
@@ -78,13 +81,17 @@ pub const GtkBackend = struct {
             .normal => |normal| {
                 const gtk_item = if (item.shortcut) |shortcut|
                     try self.createMenuItemWithShortcut(item.title, shortcut)
-                else
-                    c.gtk_menu_item_new_with_label(item.title.ptr) orelse return error.GtkMenuItemCreationFailed;
+                else blk: {
+                    const title_z = try self.allocator.dupeZ(u8, item.title);
+                    defer self.allocator.free(title_z);
+                    break :blk c.gtk_menu_item_new_with_label(title_z.ptr) orelse return error.GtkMenuItemCreationFailed;
+                };
 
                 c.gtk_widget_set_sensitive(gtk_item, if (item.enabled) 1 else 0);
 
                 if (normal.callback) |callback| {
                     const data = try self.allocator.create(GtkMenuItemData);
+                    errdefer self.allocator.destroy(data);
                     data.* = .{
                         .callback = callback,
                         .user_data = null,
@@ -104,7 +111,10 @@ pub const GtkBackend = struct {
                 c.gtk_menu_shell_append(@ptrCast(gtk_menu), gtk_item);
             },
             .checkbox => |checkbox| {
-                const gtk_item = c.gtk_check_menu_item_new_with_label(item.title.ptr) orelse
+                const title_z = try self.allocator.dupeZ(u8, item.title);
+                defer self.allocator.free(title_z);
+
+                const gtk_item = c.gtk_check_menu_item_new_with_label(title_z.ptr) orelse
                     return error.GtkCheckMenuItemCreationFailed;
 
                 c.gtk_check_menu_item_set_active(@ptrCast(gtk_item), if (checkbox.checked) 1 else 0);
@@ -112,6 +122,7 @@ pub const GtkBackend = struct {
 
                 if (checkbox.callback) |callback| {
                     const data = try self.allocator.create(GtkMenuItemData);
+                    errdefer self.allocator.destroy(data);
                     data.* = .{
                         .callback = callback,
                         .user_data = null,
@@ -137,7 +148,10 @@ pub const GtkBackend = struct {
                     try self.addMenuItem(gtk_submenu, &subitem);
                 }
 
-                const gtk_item = c.gtk_menu_item_new_with_label(item.title.ptr) orelse
+                const title_z = try self.allocator.dupeZ(u8, item.title);
+                defer self.allocator.free(title_z);
+
+                const gtk_item = c.gtk_menu_item_new_with_label(title_z.ptr) orelse
                     return error.GtkMenuItemCreationFailed;
 
                 c.gtk_menu_item_set_submenu(@ptrCast(gtk_item), gtk_submenu);
@@ -147,36 +161,43 @@ pub const GtkBackend = struct {
     }
 
     fn createMenuItemWithShortcut(self: *GtkBackend, title: []const u8, shortcut: menu_types.Shortcut) !*c.GtkWidget {
-        _ = self;
-
         // Create accelerator string (e.g., "<Ctrl>O", "<Shift><Ctrl>S")
-        var accel_buf: [64]u8 = undefined;
+        var accel_buf: [128]u8 = undefined;
         var accel_len: usize = 0;
 
-        if (shortcut.modifiers.control) {
+        // Bounds checking to prevent overflow
+        const max_len = accel_buf.len - 1; // Reserve space for null terminator
+
+        if (shortcut.modifiers.control and accel_len + 6 <= max_len) {
             @memcpy(accel_buf[accel_len..][0..6], "<Ctrl>");
             accel_len += 6;
         }
-        if (shortcut.modifiers.shift) {
+        if (shortcut.modifiers.shift and accel_len + 7 <= max_len) {
             @memcpy(accel_buf[accel_len..][0..7], "<Shift>");
             accel_len += 7;
         }
-        if (shortcut.modifiers.option) {
+        if (shortcut.modifiers.option and accel_len + 5 <= max_len) {
             @memcpy(accel_buf[accel_len..][0..5], "<Alt>");
             accel_len += 5;
         }
-        if (shortcut.modifiers.command) {
+        if (shortcut.modifiers.command and accel_len + 7 <= max_len) {
             @memcpy(accel_buf[accel_len..][0..7], "<Super>");
             accel_len += 7;
         }
 
-        // Add key
-        const key_upper = std.ascii.upperString(accel_buf[accel_len..], shortcut.key);
-        accel_len += key_upper.len;
+        // Add key with bounds checking
+        if (accel_len + shortcut.key.len <= max_len) {
+            const key_upper = std.ascii.upperString(accel_buf[accel_len..][0..shortcut.key.len], shortcut.key);
+            accel_len += key_upper.len;
+        }
 
         accel_buf[accel_len] = 0;
 
-        const gtk_item = c.gtk_menu_item_new_with_label(title.ptr) orelse
+        // Create menu item with null-terminated title
+        const title_z = try self.allocator.dupeZ(u8, title);
+        defer self.allocator.free(title_z);
+
+        const gtk_item = c.gtk_menu_item_new_with_label(title_z.ptr) orelse
             return error.GtkMenuItemCreationFailed;
 
         // Parse and set accelerator
@@ -212,7 +233,7 @@ pub fn init() void {
 }
 
 /// Create a simple window with a menu bar for testing
-pub fn createWindowWithMenuBar(title: []const u8, menubar: *GtkBackend) *c.GtkWidget {
+pub fn createWindowWithMenuBar(title: [:0]const u8, menubar: *GtkBackend) *c.GtkWidget {
     const window = c.gtk_window_new(c.GTK_WINDOW_TOPLEVEL) orelse @panic("Failed to create window");
 
     c.gtk_window_set_title(@ptrCast(window), title.ptr);

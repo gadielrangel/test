@@ -14,6 +14,8 @@ pub const Modifiers = packed struct {
 };
 
 /// Keyboard shortcut for a menu item
+/// Note: The key string should be a short identifier (e.g., "s", "o", "q")
+/// and must remain valid for the lifetime of the menu
 pub const Shortcut = struct {
     key: []const u8,
     modifiers: Modifiers,
@@ -42,6 +44,8 @@ pub const MenuItemKind = union(enum) {
 };
 
 /// A single menu item
+/// Note: The title string must remain valid for the lifetime of the menu item.
+/// Typically use string literals which are compile-time constants.
 pub const MenuItem = struct {
     title: []const u8,
     kind: MenuItemKind,
@@ -104,6 +108,8 @@ pub const MenuItem = struct {
 };
 
 /// A menu containing multiple items
+/// Note: The title string must remain valid for the lifetime of the menu.
+/// Typically use string literals which are compile-time constants.
 pub const Menu = struct {
     title: []const u8,
     items: std.ArrayList(MenuItem),
