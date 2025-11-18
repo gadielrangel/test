@@ -1,0 +1,1003 @@
+# Developer Profile - Menu Bar Configuration
+# Optimized for software development workflow
+
+meta:
+  name: "Developer Menu Profile"
+  version: "1.0.0"
+  author: "Power User"
+  description: "Customized menu layout for development with Git integration, build tools, and IDE features"
+
+# Global settings
+settings:
+  appearance:
+    theme: "dark"
+    accent_color: "#007ACC"        # VS Code blue
+    font_size: 13
+    show_icons: true
+    animation_speed: "fast"
+    menu_corner_radius: 4
+    item_height: 24
+
+  behavior:
+    type_ahead: true
+    type_ahead_timeout: 800
+    hover_to_switch: true
+    hover_delay: 200
+    close_on_execute: true
+    flash_on_shortcut: true
+
+  accessibility:
+    high_contrast: false
+    reduce_motion: false
+    large_text: false
+
+# Custom keyboard shortcuts
+shortcuts:
+  # File operations
+  "Cmd+N": "file.new"
+  "Cmd+Shift+N": "file.new_window"
+  "Cmd+O": "file.open"
+  "Cmd+Shift+O": "file.open_folder"
+  "Cmd+S": "file.save"
+  "Cmd+Shift+S": "file.save_all"
+  "Cmd+W": "file.close"
+  "Cmd+Shift+W": "file.close_all"
+
+  # Edit operations
+  "Cmd+Z": "edit.undo"
+  "Cmd+Shift+Z": "edit.redo"
+  "Cmd+X": "edit.cut"
+  "Cmd+C": "edit.copy"
+  "Cmd+V": "edit.paste"
+  "Cmd+D": "edit.duplicate_line"
+  "Cmd+/": "edit.toggle_comment"
+
+  # Development shortcuts
+  "Cmd+B": "build.build_project"
+  "Cmd+R": "build.run"
+  "Cmd+Shift+B": "build.build_all"
+  "F5": "debug.start"
+  "Shift+F5": "debug.stop"
+  "F9": "debug.toggle_breakpoint"
+  "F10": "debug.step_over"
+  "F11": "debug.step_into"
+
+  # Search & Navigation
+  "Cmd+F": "edit.find"
+  "Cmd+Shift+F": "edit.find_in_files"
+  "Cmd+P": "navigate.go_to_file"
+  "Cmd+Shift+P": "command_palette"
+  "Cmd+T": "navigate.go_to_symbol"
+  "Cmd+G": "navigate.go_to_line"
+
+  # View
+  "Cmd+B": "view.toggle_sidebar"
+  "Cmd+J": "view.toggle_terminal"
+  "Cmd+`": "view.toggle_console"
+  "Cmd+Shift+E": "view.show_explorer"
+  "Cmd+Shift+D": "view.show_debug"
+  "Cmd+Shift+G": "view.show_git"
+
+  # Terminal
+  "Ctrl+`": "terminal.new"
+  "Ctrl+Shift+`": "terminal.new_external"
+
+# Menu definitions
+menus:
+  # Application Menu
+  - id: app
+    title: "CodeEditor"
+    position: 0
+    items:
+      - id: app.about
+        title: "About CodeEditor"
+        action: showAbout
+        icon: "info.circle"
+
+      - type: separator
+
+      - id: app.check_updates
+        title: "Check for Updates..."
+        action: checkForUpdates
+        icon: "arrow.down.circle"
+
+      - type: separator
+
+      - id: app.preferences
+        title: "Preferences..."
+        shortcut: "Cmd+,"
+        action: showPreferences
+        icon: "gear"
+
+      - type: separator
+
+      - id: app.extensions
+        title: "Extensions"
+        type: submenu
+        icon: "puzzlepiece"
+        items:
+          - title: "Manage Extensions..."
+            shortcut: "Cmd+Shift+X"
+            action: showExtensions
+
+          - title: "Install Extension..."
+            action: installExtension
+
+          - type: separator
+
+          - title: "Check for Extension Updates"
+            action: checkExtensionUpdates
+
+      - type: separator
+
+      - id: app.hide
+        title: "Hide CodeEditor"
+        shortcut: "Cmd+H"
+        action: hideApp
+
+      - id: app.quit
+        title: "Quit CodeEditor"
+        shortcut: "Cmd+Q"
+        action: quit
+
+  # File Menu
+  - id: file
+    title: "File"
+    position: 1
+    items:
+      - id: file.new
+        title: "New File"
+        shortcut: "Cmd+N"
+        action: newFile
+        icon: "doc.badge.plus"
+
+      - id: file.new_window
+        title: "New Window"
+        shortcut: "Cmd+Shift+N"
+        action: newWindow
+        icon: "macwindow.badge.plus"
+
+      - type: separator
+
+      - id: file.open
+        title: "Open File..."
+        shortcut: "Cmd+O"
+        action: openFile
+        icon: "doc"
+
+      - id: file.open_folder
+        title: "Open Folder..."
+        shortcut: "Cmd+Shift+O"
+        action: openFolder
+        icon: "folder"
+
+      - id: file.recent
+        type: recent
+        title: "Open Recent"
+        source: recent_files
+        max_items: 15
+        icon: "clock.arrow.circlepath"
+        items:
+          - type: separator
+          - title: "Clear Recently Opened"
+            action: clearRecentFiles
+
+      - type: separator
+
+      - id: file.save
+        title: "Save"
+        shortcut: "Cmd+S"
+        action: save
+        validator: |
+          enabled: hasDocument() && isModified()
+        icon: "square.and.arrow.down"
+
+      - id: file.save_as
+        title: "Save As..."
+        shortcut: "Cmd+Shift+S"
+        action: saveAs
+        validator: hasDocument
+        icon: "square.and.arrow.down.on.square"
+
+      - id: file.save_all
+        title: "Save All"
+        shortcut: "Cmd+Option+S"
+        action: saveAll
+        validator: hasModifiedDocuments
+
+      - type: separator
+
+      - id: file.auto_save
+        type: check
+        title: "Auto Save"
+        checked: false
+        state_key: "files.auto_save"
+        action: toggleAutoSave
+
+      - type: separator
+
+      - id: file.close
+        title: "Close Editor"
+        shortcut: "Cmd+W"
+        action: closeEditor
+        validator: hasDocument
+
+      - id: file.close_folder
+        title: "Close Folder"
+        shortcut: "Cmd+K F"
+        action: closeFolder
+        validator: hasFolderOpen
+
+      - id: file.close_window
+        title: "Close Window"
+        shortcut: "Cmd+Shift+W"
+        action: closeWindow
+
+  # Edit Menu
+  - id: edit
+    title: "Edit"
+    position: 2
+    items:
+      - id: edit.undo
+        title: "Undo"
+        shortcut: "Cmd+Z"
+        action: undo
+        validator: |
+          enabled: canUndo()
+          title: "Undo " + (undoAction() || "")
+        icon: "arrow.uturn.backward"
+
+      - id: edit.redo
+        title: "Redo"
+        shortcut: "Cmd+Shift+Z"
+        action: redo
+        validator: |
+          enabled: canRedo()
+          title: "Redo " + (redoAction() || "")
+        icon: "arrow.uturn.forward"
+
+      - type: separator
+
+      - id: edit.cut
+        title: "Cut"
+        shortcut: "Cmd+X"
+        action: cut
+        validator: hasSelection
+        icon: "scissors"
+
+      - id: edit.copy
+        title: "Copy"
+        shortcut: "Cmd+C"
+        action: copy
+        validator: hasSelection
+        icon: "doc.on.doc"
+
+      - id: edit.paste
+        title: "Paste"
+        shortcut: "Cmd+V"
+        action: paste
+        validator: clipboardHasContent
+        icon: "doc.on.clipboard"
+
+      - type: separator
+
+      - id: edit.find
+        title: "Find"
+        shortcut: "Cmd+F"
+        action: showFind
+        icon: "magnifyingglass"
+
+      - id: edit.replace
+        title: "Replace"
+        shortcut: "Cmd+Option+F"
+        action: showReplace
+
+      - id: edit.find_in_files
+        title: "Find in Files"
+        shortcut: "Cmd+Shift+F"
+        action: findInFiles
+        icon: "doc.text.magnifyingglass"
+
+      - type: separator
+
+      - id: edit.toggle_comment
+        title: "Toggle Line Comment"
+        shortcut: "Cmd+/"
+        action: toggleComment
+        validator: hasDocument
+
+      - id: edit.toggle_block_comment
+        title: "Toggle Block Comment"
+        shortcut: "Cmd+Shift+/"
+        action: toggleBlockComment
+        validator: hasDocument
+
+      - type: separator
+
+      - id: edit.format_document
+        title: "Format Document"
+        shortcut: "Cmd+Shift+I"
+        action: formatDocument
+        validator: hasFormatter
+        icon: "text.alignleft"
+
+      - id: edit.format_selection
+        title: "Format Selection"
+        shortcut: "Cmd+K Cmd+F"
+        action: formatSelection
+        validator: hasSelection && hasFormatter
+
+  # Selection Menu (Developer-specific)
+  - id: selection
+    title: "Selection"
+    position: 3
+    items:
+      - id: selection.select_all
+        title: "Select All"
+        shortcut: "Cmd+A"
+        action: selectAll
+
+      - id: selection.expand_selection
+        title: "Expand Selection"
+        shortcut: "Cmd+Shift+Right"
+        action: expandSelection
+
+      - id: selection.shrink_selection
+        title: "Shrink Selection"
+        shortcut: "Cmd+Shift+Left"
+        action: shrinkSelection
+
+      - type: separator
+
+      - id: selection.column_selection
+        title: "Column Selection Mode"
+        type: check
+        checked: false
+        shortcut: "Cmd+Shift+Option+Down"
+        action: toggleColumnSelection
+
+      - type: separator
+
+      - id: selection.select_word
+        title: "Select Word"
+        shortcut: "Cmd+D"
+        action: selectWord
+
+      - id: selection.select_all_occurrences
+        title: "Select All Occurrences"
+        shortcut: "Cmd+Shift+L"
+        action: selectAllOccurrences
+
+      - type: separator
+
+      - id: selection.add_cursor_above
+        title: "Add Cursor Above"
+        shortcut: "Cmd+Option+Up"
+        action: addCursorAbove
+
+      - id: selection.add_cursor_below
+        title: "Add Cursor Below"
+        shortcut: "Cmd+Option+Down"
+        action: addCursorBelow
+
+  # View Menu
+  - id: view
+    title: "View"
+    position: 4
+    items:
+      - id: view.command_palette
+        title: "Command Palette..."
+        shortcut: "Cmd+Shift+P"
+        action: showCommandPalette
+        icon: "command"
+
+      - type: separator
+
+      - id: view.explorer
+        type: check
+        title: "Explorer"
+        shortcut: "Cmd+Shift+E"
+        checked: true
+        state_key: "view.explorer"
+        action: toggleExplorer
+        icon: "folder"
+
+      - id: view.search
+        type: check
+        title: "Search"
+        shortcut: "Cmd+Shift+F"
+        checked: false
+        state_key: "view.search"
+        action: toggleSearch
+        icon: "magnifyingglass"
+
+      - id: view.git
+        type: check
+        title: "Source Control"
+        shortcut: "Cmd+Shift+G"
+        checked: false
+        state_key: "view.git"
+        action: toggleGit
+        icon: "arrow.triangle.branch"
+
+      - id: view.debug
+        type: check
+        title: "Debug"
+        shortcut: "Cmd+Shift+D"
+        checked: false
+        state_key: "view.debug"
+        action: toggleDebug
+        icon: "ladybug"
+
+      - id: view.extensions
+        type: check
+        title: "Extensions"
+        shortcut: "Cmd+Shift+X"
+        checked: false
+        state_key: "view.extensions"
+        action: toggleExtensions
+        icon: "puzzlepiece"
+
+      - type: separator
+
+      - id: view.terminal
+        type: check
+        title: "Terminal"
+        shortcut: "Cmd+`"
+        checked: true
+        state_key: "view.terminal"
+        action: toggleTerminal
+        icon: "terminal"
+
+      - id: view.problems
+        type: check
+        title: "Problems"
+        shortcut: "Cmd+Shift+M"
+        checked: true
+        state_key: "view.problems"
+        action: toggleProblems
+        badge:
+          type: count
+          value: problemCount()
+          color: "red"
+
+      - id: view.output
+        type: check
+        title: "Output"
+        shortcut: "Cmd+Shift+U"
+        checked: false
+        state_key: "view.output"
+        action: toggleOutput
+
+      - type: separator
+
+      - id: view.layout
+        type: submenu
+        title: "Editor Layout"
+        items:
+          - title: "Single Column"
+            action: setSingleColumn
+
+          - title: "Two Columns"
+            shortcut: "Cmd+Option+2"
+            action: setTwoColumns
+
+          - title: "Three Columns"
+            shortcut: "Cmd+Option+3"
+            action: setThreeColumns
+
+          - type: separator
+
+          - title: "Split Editor"
+            shortcut: "Cmd+\\"
+            action: splitEditor
+
+          - title: "Split Editor Orthogonal"
+            shortcut: "Cmd+K Cmd+\\"
+            action: splitEditorOrthogonal
+
+      - type: separator
+
+      - id: view.zoom_in
+        title: "Zoom In"
+        shortcut: "Cmd+="
+        action: zoomIn
+        icon: "plus.magnifyingglass"
+
+      - id: view.zoom_out
+        title: "Zoom Out"
+        shortcut: "Cmd+-"
+        action: zoomOut
+        icon: "minus.magnifyingglass"
+
+      - id: view.reset_zoom
+        title: "Reset Zoom"
+        shortcut: "Cmd+0"
+        action: resetZoom
+
+      - type: separator
+
+      - id: view.fullscreen
+        title: "Enter Full Screen"
+        shortcut: "Cmd+Ctrl+F"
+        action: toggleFullscreen
+        validator: |
+          title: isFullscreen() ? "Exit Full Screen" : "Enter Full Screen"
+
+  # Git Menu (Developer-specific)
+  - id: git
+    title: "Git"
+    position: 5
+    visible: true
+    items:
+      - id: git.clone
+        title: "Clone Repository..."
+        action: gitClone
+        icon: "arrow.down.doc"
+
+      - id: git.init
+        title: "Initialize Repository..."
+        action: gitInit
+        validator: "!hasGitRepo()"
+
+      - type: separator
+
+      - id: git.commit
+        title: "Commit..."
+        shortcut: "Cmd+K Cmd+C"
+        action: gitCommit
+        validator: hasStagedChanges
+        icon: "checkmark.circle"
+
+      - id: git.commit_all
+        title: "Commit All..."
+        shortcut: "Cmd+K Cmd+A"
+        action: gitCommitAll
+        validator: hasChanges
+
+      - type: separator
+
+      - id: git.push
+        title: "Push"
+        shortcut: "Cmd+K Cmd+P"
+        action: gitPush
+        validator: hasCommitsToPush
+        icon: "arrow.up.circle"
+
+      - id: git.pull
+        title: "Pull"
+        shortcut: "Cmd+K Cmd+L"
+        action: gitPull
+        icon: "arrow.down.circle"
+
+      - id: git.fetch
+        title: "Fetch"
+        action: gitFetch
+
+      - type: separator
+
+      - id: git.branch
+        type: submenu
+        title: "Branch"
+        icon: "arrow.triangle.branch"
+        items:
+          - title: "Create Branch..."
+            action: gitCreateBranch
+
+          - title: "Delete Branch..."
+            action: gitDeleteBranch
+
+          - title: "Rename Branch..."
+            action: gitRenameBranch
+
+          - type: separator
+
+          - type: dynamic
+            generator: listGitBranches
+            refresh_on: ["git_branch_changed"]
+
+      - id: git.stash
+        type: submenu
+        title: "Stash"
+        items:
+          - title: "Stash Changes..."
+            action: gitStash
+
+          - title: "Pop Stash..."
+            action: gitStashPop
+
+          - title: "Apply Stash..."
+            action: gitStashApply
+
+          - type: separator
+
+          - type: dynamic
+            generator: listGitStashes
+
+      - type: separator
+
+      - id: git.history
+        title: "View History"
+        shortcut: "Cmd+K Cmd+H"
+        action: showGitHistory
+        icon: "clock.arrow.circlepath"
+
+      - id: git.blame
+        title: "Show Blame"
+        action: showGitBlame
+
+  # Build Menu (Developer-specific)
+  - id: build
+    title: "Build"
+    position: 6
+    items:
+      - id: build.build_project
+        title: "Build Project"
+        shortcut: "Cmd+B"
+        action: buildProject
+        icon: "hammer"
+
+      - id: build.build_all
+        title: "Rebuild All"
+        shortcut: "Cmd+Shift+B"
+        action: buildAll
+
+      - id: build.clean
+        title: "Clean"
+        action: cleanBuild
+
+      - type: separator
+
+      - id: build.run
+        title: "Run"
+        shortcut: "Cmd+R"
+        action: runProject
+        icon: "play"
+
+      - id: build.run_without_debugging
+        title: "Run Without Debugging"
+        shortcut: "Cmd+Ctrl+R"
+        action: runWithoutDebugging
+
+      - type: separator
+
+      - id: build.test
+        title: "Run Tests"
+        shortcut: "Cmd+T"
+        action: runTests
+        icon: "checkmark.seal"
+
+      - id: build.test_all
+        title: "Run All Tests"
+        shortcut: "Cmd+Shift+T"
+        action: runAllTests
+
+      - id: build.test_file
+        title: "Test Current File"
+        action: testCurrentFile
+        validator: isTestFile
+
+      - type: separator
+
+      - id: build.configuration
+        type: submenu
+        title: "Configuration"
+        items:
+          - type: radio
+            title: "Debug"
+            group: "build.config"
+            selected: true
+            action: setBuildConfigDebug
+
+          - type: radio
+            title: "Release"
+            group: "build.config"
+            selected: false
+            action: setBuildConfigRelease
+
+          - type: radio
+            title: "ReleaseSafe"
+            group: "build.config"
+            selected: false
+            action: setBuildConfigReleaseSafe
+
+  # Debug Menu
+  - id: debug
+    title: "Debug"
+    position: 7
+    items:
+      - id: debug.start
+        title: "Start Debugging"
+        shortcut: "F5"
+        action: startDebugging
+        icon: "play.circle"
+
+      - id: debug.start_without_debugging
+        title: "Run Without Debugging"
+        shortcut: "Cmd+F5"
+        action: startWithoutDebugging
+
+      - id: debug.stop
+        title: "Stop Debugging"
+        shortcut: "Shift+F5"
+        action: stopDebugging
+        validator: isDebugging
+        icon: "stop.circle"
+
+      - id: debug.restart
+        title: "Restart Debugging"
+        shortcut: "Cmd+Shift+F5"
+        action: restartDebugging
+        validator: isDebugging
+
+      - type: separator
+
+      - id: debug.step_over
+        title: "Step Over"
+        shortcut: "F10"
+        action: stepOver
+        validator: isDebugging
+        icon: "arrow.right.to.line"
+
+      - id: debug.step_into
+        title: "Step Into"
+        shortcut: "F11"
+        action: stepInto
+        validator: isDebugging
+        icon: "arrow.down.to.line"
+
+      - id: debug.step_out
+        title: "Step Out"
+        shortcut: "Shift+F11"
+        action: stepOut
+        validator: isDebugging
+        icon: "arrow.up.to.line"
+
+      - id: debug.continue
+        title: "Continue"
+        shortcut: "F8"
+        action: continue
+        validator: isDebugging
+
+      - type: separator
+
+      - id: debug.toggle_breakpoint
+        title: "Toggle Breakpoint"
+        shortcut: "F9"
+        action: toggleBreakpoint
+
+      - id: debug.conditional_breakpoint
+        title: "Conditional Breakpoint..."
+        action: addConditionalBreakpoint
+
+      - id: debug.logpoint
+        title: "Add Logpoint..."
+        action: addLogpoint
+
+      - type: separator
+
+      - id: debug.clear_all_breakpoints
+        title: "Remove All Breakpoints"
+        action: clearAllBreakpoints
+        validator: hasBreakpoints
+
+  # Window Menu
+  - id: window
+    title: "Window"
+    position: 8
+    items:
+      - id: window.minimize
+        title: "Minimize"
+        shortcut: "Cmd+M"
+        action: minimizeWindow
+
+      - id: window.zoom
+        title: "Zoom"
+        action: zoomWindow
+
+      - type: separator
+
+      - id: window.new_window
+        title: "New Window"
+        shortcut: "Cmd+Shift+N"
+        action: newWindow
+
+      - id: window.close_window
+        title: "Close Window"
+        shortcut: "Cmd+Shift+W"
+        action: closeWindow
+
+      - type: separator
+
+      - type: dynamic
+        generator: listOpenWindows
+        refresh_on: ["window_opened", "window_closed", "window_focused"]
+
+  # Help Menu
+  - id: help
+    title: "Help"
+    position: 9
+    items:
+      - id: help.welcome
+        title: "Welcome"
+        action: showWelcome
+        icon: "hand.wave"
+
+      - id: help.docs
+        title: "Documentation"
+        shortcut: "F1"
+        action: openDocumentation
+        icon: "book"
+
+      - id: help.shortcuts
+        title: "Keyboard Shortcuts Reference"
+        shortcut: "Cmd+K Cmd+S"
+        action: showKeyboardShortcuts
+        icon: "keyboard"
+
+      - type: separator
+
+      - id: help.video_tutorials
+        title: "Video Tutorials"
+        action: openVideoTutorials
+
+      - id: help.tips_and_tricks
+        title: "Tips and Tricks"
+        action: showTipsAndTricks
+
+      - type: separator
+
+      - id: help.release_notes
+        title: "Release Notes"
+        action: showReleaseNotes
+
+      - id: help.whats_new
+        title: "What's New"
+        action: showWhatsNew
+        badge:
+          type: dot
+          color: "blue"
+          visible: hasUnseenChangelog
+
+      - type: separator
+
+      - id: help.report_issue
+        title: "Report Issue..."
+        action: reportIssue
+        icon: "exclamationmark.triangle"
+
+      - id: help.request_feature
+        title: "Request Feature..."
+        action: requestFeature
+
+      - type: separator
+
+      - id: help.view_license
+        title: "View License"
+        action: viewLicense
+
+      - id: help.about
+        title: "About CodeEditor"
+        action: showAbout
+
+# Context menus
+context_menus:
+  - id: editor_context
+    trigger: editor_right_click
+    items:
+      - title: "Go to Definition"
+        shortcut: "F12"
+        action: goToDefinition
+        validator: hasSymbol
+
+      - title: "Go to References"
+        shortcut: "Shift+F12"
+        action: goToReferences
+        validator: hasSymbol
+
+      - type: separator
+
+      - title: "Cut"
+        action: cut
+        validator: hasSelection
+
+      - title: "Copy"
+        action: copy
+        validator: hasSelection
+
+      - title: "Paste"
+        action: paste
+
+      - type: separator
+
+      - title: "Format Document"
+        action: formatDocument
+
+      - title: "Format Selection"
+        action: formatSelection
+        validator: hasSelection
+
+      - type: separator
+
+      - title: "Rename Symbol"
+        shortcut: "F2"
+        action: renameSymbol
+        validator: hasSymbol
+
+  - id: file_explorer_context
+    trigger: file_explorer_right_click
+    items:
+      - title: "New File"
+        action: newFileInFolder
+
+      - title: "New Folder"
+        action: newFolder
+
+      - type: separator
+
+      - title: "Cut"
+        action: cutFile
+
+      - title: "Copy"
+        action: copyFile
+
+      - title: "Paste"
+        action: pasteFile
+
+      - type: separator
+
+      - title: "Rename"
+        action: renameFile
+
+      - title: "Delete"
+        action: deleteFile
+
+      - type: separator
+
+      - title: "Reveal in System Explorer"
+        action: revealInExplorer
+
+      - title: "Open in Terminal"
+        action: openInTerminal
+
+# Profiles (alternative configurations)
+profiles:
+  - id: developer
+    name: "Developer (Full)"
+    description: "All developer tools visible"
+    active: true
+
+  - id: writer
+    name: "Writer Mode"
+    description: "Minimal UI for focused writing"
+    hidden_menus: ["git", "build", "debug"]
+    hidden_items:
+      - "view.explorer"
+      - "view.terminal"
+    shortcuts:
+      "Cmd+D": "edit.define_word"
+      "Cmd+T": "edit.thesaurus"
+
+  - id: presenter
+    name: "Presentation Mode"
+    description: "Large fonts, minimal distractions"
+    settings:
+      appearance:
+        font_size: 18
+      behavior:
+        close_on_execute: false
+    hidden_menus: ["git", "build", "debug"]
+
+# Scripting hooks
+scripts:
+  on_startup:
+    - script: "scripts/load_project_config.lua"
+
+  on_menu_open:
+    - script: "scripts/update_git_status.lua"
+
+  on_item_select:
+    - script: "scripts/log_command.lua"
+
+  validators:
+    - script: "scripts/custom_validators.lua"
