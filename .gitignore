@@ -1,6 +1,15 @@
+# Zig build artifacts
 zig-cache/
+.zig-cache/
 zig-out/
+
+# Compiled artifacts
 *.o
 *.so
 *.a
+
+# OS files
 .DS_Store
+
+# Downloaded tools
+/tmp/zig*.tar.xz
