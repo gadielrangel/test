@@ -90,10 +90,10 @@ pub const MenuItem = struct {
     /// Create a submenu item
     /// IMPORTANT: The submenu pointer is consumed and will be deallocated
     /// when the parent menu calls deinit(). Do NOT manually destroy the submenu.
-    pub fn submenu(title: []const u8, submenu: *Menu) MenuItem {
+    pub fn submenu(title: []const u8, menu_ptr: *Menu) MenuItem {
         return .{
             .title = title,
-            .kind = .{ .submenu = .{ .menu = submenu } },
+            .kind = .{ .submenu = .{ .menu = menu_ptr } },
         };
     }
 
@@ -108,7 +108,7 @@ pub const MenuItem = struct {
     pub fn withCallback(self: MenuItem, callback: MenuItemCallback) MenuItem {
         var item = self;
         switch (item.kind) {
-            .normal => |*normal| normal.callback = callback,
+            .normal => |*n| n.callback = callback,
             .checkbox => |*check| check.callback = callback,
             else => {},
         }

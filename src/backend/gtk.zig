@@ -50,7 +50,7 @@ pub const GtkBackend = struct {
     }
 
     pub fn createFromMenuBar(allocator: std.mem.Allocator, menubar: *MenuBar) !GtkBackend {
-        var backend = try init(allocator);
+        var backend = try GtkBackend.init(allocator);
         errdefer backend.deinit();
 
         for (menubar.menus.items) |menu_ptr| {
