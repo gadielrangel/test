@@ -1,0 +1,23 @@
+# Lefthook - Fast Git Hooks Manager
+# https://github.com/evilmartians/lefthook
+
+# Pre-commit hooks - run before commit
+pre-commit:
+  parallel: true
+  commands:
+    # Auto-format Zig code
+    format:
+      glob: "*.zig"
+      run: zig fmt {staged_files}
+      stage_fixed: true
+
+# Pre-push hooks - run before push
+pre-push:
+  parallel: false
+  commands:
+    # Run tests before pushing
+    test:
+      run: |
+        echo "🧪 Running tests before push..."
+        zig build test
+        echo "✅ All tests passed!"
