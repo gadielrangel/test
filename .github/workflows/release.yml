@@ -67,7 +67,7 @@ jobs:
       - name: Package binary
         run: |
           mkdir -p dist
-          cp zig-out/bin/example dist/menubar-${{ matrix.target }}
+          cp zig-out/bin/menubar-example dist/menubar-${{ matrix.target }}
           cd dist
           tar czf menubar-${{ matrix.target }}.tar.gz menubar-${{ matrix.target }}
           sha256sum menubar-${{ matrix.target }}.tar.gz > menubar-${{ matrix.target }}.tar.gz.sha256

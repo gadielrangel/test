@@ -50,10 +50,19 @@ clean:
 check: fmt-check test
     @echo "✅ All checks passed!"
 
+# 🔍 Validate build configuration
+validate-build:
+    @echo "🔍 Validating build configuration..."
+    @./tools/validate_build.sh
+
 # 🔍 Validate GitHub Actions workflows
 validate-workflows:
     @echo "🔍 Validating GitHub Actions workflows..."
     @./tools/validate_workflows.sh
+
+# ✅ Validate everything (build config + workflows)
+validate-all: validate-build validate-workflows
+    @echo "✅ All validations passed!"
 
 # 🚀 Test GitHub Actions locally (requires Docker + act)
 test-ci:
