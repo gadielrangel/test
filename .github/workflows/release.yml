@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
+      release_id: ${{ steps.create_release.outputs.id }}
     steps:
       - name: Create Release
         id: create_release
@@ -28,11 +29,13 @@ jobs:
           prerelease: false
 
   build-release:
-    name: Build Release
+    name: Build ${{ matrix.target }}
     needs: create-release
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     strategy:
+      fail-fast: false
       matrix:
         target:
           - x86_64-linux
@@ -42,15 +45,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Cache apt packages for faster installation
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/release.yml') }}
+
       - name: Install GTK3 dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgtk-3-dev pkg-config
 
-      - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: ${{ env.ZIG_VERSION }}
+      # Install Zig manually via curl
+      - name: Install Zig
+        run: |
+          curl -L https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz -o zig.tar.xz
+          tar -xf zig.tar.xz
+          sudo mv zig-linux-x86_64-${ZIG_VERSION} /usr/local/zig
+          sudo ln -sf /usr/local/zig/zig /usr/local/bin/zig
+          zig version
 
       - name: Cache Zig artifacts
         uses: actions/cache@v4
@@ -58,36 +72,31 @@ jobs:
           path: |
             ~/.cache/zig
             zig-cache
-          key: ${{ runner.os }}-zig-release-${{ matrix.target }}-${{ hashFiles('build.zig') }}
+          key: ${{ runner.os }}-zig-release-${{ matrix.target }}-${{ hashFiles('build.zig') }}-${{ hashFiles('src/**/*.zig') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-release-${{ matrix.target }}-${{ hashFiles('build.zig') }}-
+            ${{ runner.os }}-zig-release-${{ matrix.target }}-
 
       - name: Build release binary
-        run: |
-          zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
+        run: zig build -Doptimize=ReleaseFast -Dtarget=${{ matrix.target }}
 
-      - name: Package binary
+      - name: Package and checksum
+        id: package
         run: |
           mkdir -p dist
           cp zig-out/bin/menubar-example dist/menubar-${{ matrix.target }}
           cd dist
           tar czf menubar-${{ matrix.target }}.tar.gz menubar-${{ matrix.target }}
           sha256sum menubar-${{ matrix.target }}.tar.gz > menubar-${{ matrix.target }}.tar.gz.sha256
+          echo "tarball=dist/menubar-${{ matrix.target }}.tar.gz" >> $GITHUB_OUTPUT
+          echo "checksum=dist/menubar-${{ matrix.target }}.tar.gz.sha256" >> $GITHUB_OUTPUT
 
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
+      # Upload assets
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ steps.package.outputs.tarball }}
+            ${{ steps.package.outputs.checksum }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/menubar-${{ matrix.target }}.tar.gz
-          asset_name: menubar-${{ matrix.target }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Checksum
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./dist/menubar-${{ matrix.target }}.tar.gz.sha256
-          asset_name: menubar-${{ matrix.target }}.tar.gz.sha256
-          asset_content_type: text/plain

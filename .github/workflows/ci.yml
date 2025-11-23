@@ -19,15 +19,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Install GTK3 with proper caching
+      - name: Cache dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/ci.yml') }}
+
       - name: Install GTK3 dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libgtk-3-dev pkg-config
 
-      - name: Setup Zig
-        uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: ${{ env.ZIG_VERSION }}
+      # Install Zig manually via curl (no hostedtoolcache)
+      - name: Install Zig
+        run: |
+          curl -L https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz -o zig.tar.xz
+          tar -xf zig.tar.xz
+          sudo mv zig-linux-x86_64-${ZIG_VERSION} /usr/local/zig
+          sudo ln -sf /usr/local/zig/zig /usr/local/bin/zig
+          zig version
 
       - name: Cache Zig artifacts
         uses: actions/cache@v4
@@ -35,16 +47,38 @@ jobs:
           path: |
             ~/.cache/zig
             zig-cache
-          key: ${{ runner.os }}-zig-${{ hashFiles('build.zig') }}
+          key: ${{ runner.os }}-zig-${{ hashFiles('build.zig') }}-${{ hashFiles('src/**/*.zig') }}
+          restore-keys: |
+            ${{ runner.os }}-zig-${{ hashFiles('build.zig') }}-
+            ${{ runner.os }}-zig-
 
       - name: Check formatting
         run: zig fmt --check .
 
-      - name: Build
-        run: zig build
-
-      - name: Run tests
-        run: zig build test
+      - name: Build and test
+        run: |
+          zig build
+          zig build test
 
       - name: Build release
         run: zig build -Doptimize=ReleaseFast
+
+  # Parallel job for faster validation
+  validate:
+    name: Validate Configs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Validate workflows
+        run: |
+          chmod +x tools/validate_workflows.sh
+          ./tools/validate_workflows.sh
+
+      - name: Validate build config
+        run: |
+          chmod +x tools/validate_build.sh
+          ./tools/validate_build.sh

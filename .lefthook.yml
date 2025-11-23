@@ -3,21 +3,59 @@
 
 # Pre-commit hooks - run before commit
 pre-commit:
-  parallel: true
+  parallel: false  # Run sequentially to ensure formatting before build
   commands:
-    # Auto-format Zig code
+    # Auto-format Zig code first
     format:
       glob: "*.zig"
       run: zig fmt {staged_files}
       stage_fixed: true
+      priority: 1
+
+    # Ensure code compiles successfully
+    build:
+      run: |
+        echo "🔨 Compiling code..."
+        zig build || {
+          echo "❌ Build failed! Fix compilation errors before committing."
+          exit 1
+        }
+        echo "✅ Build successful!"
+      priority: 2
+
+    # Check formatting is correct (after auto-format)
+    format-check:
+      run: |
+        echo "🔍 Checking code formatting..."
+        zig fmt --check . || {
+          echo "❌ Code is not formatted correctly!"
+          exit 1
+        }
+        echo "✅ Formatting is correct!"
+      priority: 3
 
 # Pre-push hooks - run before push
 pre-push:
   parallel: false
   commands:
-    # Run tests before pushing
+    # Run full test suite before pushing
     test:
       run: |
         echo "🧪 Running tests before push..."
-        zig build test
+        zig build test || {
+          echo "❌ Tests failed! Fix failing tests before pushing."
+          exit 1
+        }
         echo "✅ All tests passed!"
+      priority: 1
+
+    # Build release to catch release-mode issues
+    build-release:
+      run: |
+        echo "🏗️  Testing release build..."
+        zig build -Doptimize=ReleaseFast || {
+          echo "❌ Release build failed!"
+          exit 1
+        }
+        echo "✅ Release build successful!"
+      priority: 2

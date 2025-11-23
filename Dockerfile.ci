@@ -1,0 +1,39 @@
+# Optimized CI Docker image with pre-installed dependencies
+# This eliminates the need to install dependencies on every CI run
+# Usage: docker build -f Dockerfile.ci -t menubar-ci:latest .
+
+FROM ubuntu:22.04
+
+# Avoid interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install all build dependencies in a single layer
+RUN apt-get update && apt-get install -y \
+    # GTK3 development files
+    libgtk-3-dev \
+    pkg-config \
+    # Build essentials
+    build-essential \
+    curl \
+    wget \
+    git \
+    # Cleanup to reduce image size
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Zig compiler
+ARG ZIG_VERSION=0.13.0
+RUN wget -q https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz \
+    && tar -xf zig-linux-x86_64-${ZIG_VERSION}.tar.xz \
+    && mv zig-linux-x86_64-${ZIG_VERSION} /usr/local/zig \
+    && ln -s /usr/local/zig/zig /usr/local/bin/zig \
+    && rm zig-linux-x86_64-${ZIG_VERSION}.tar.xz
+
+# Verify installation
+RUN zig version && pkg-config --modversion gtk+-3.0
+
+# Set working directory
+WORKDIR /workspace
+
+# Default command
+CMD ["/bin/bash"]
