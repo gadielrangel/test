@@ -4,12 +4,15 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // MenuBar library module
-    const menubar_mod = b.addModule("menubar", .{
+    // Create a static library for menubar that links to GTK
+    const menubar_lib = b.addStaticLibrary(.{
+        .name = "menubar",
         .root_source_file = b.path("src/menu_bar.zig"),
         .target = target,
         .optimize = optimize,
     });
+    menubar_lib.linkSystemLibrary("gtk+-3.0");
+    menubar_lib.linkLibC();
 
     // Example application
     const example = b.addExecutable(.{
@@ -18,7 +21,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    example.root_module.addImport("menubar", menubar_mod);
+    example.root_module.addImport("menubar", &menubar_lib.root_module);
 
     // Link GTK3 for Linux
     example.linkSystemLibrary("gtk+-3.0");
@@ -42,6 +45,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib_tests.linkSystemLibrary("gtk+-3.0");
+    lib_tests.linkLibC();
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const test_step = b.step("test", "Run library tests");
